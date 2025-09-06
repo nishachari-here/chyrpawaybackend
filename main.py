@@ -12,23 +12,36 @@ from cloudinary.uploader import upload
 import json
 from typing import List
 
-router = APIRouter()
+app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Load environment variables
 load_dotenv()
 
-# Initialize Firebase
-cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-if not cred_path:
+# Step 1: Get the JSON string from the environment variable
+firebase_credentials_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+if not firebase_credentials_json:
     raise ValueError("GOOGLE_APPLICATION_CREDENTIALS environment variable not set.")
 
-cred_path = Path(cred_path).expanduser().resolve()
-if not cred_path.is_file():
-    raise FileNotFoundError(f"Firebase credential file not found: {cred_path}")
+# Step 2: Parse the JSON string into a dictionary
+try:
+    cred_dict = json.loads(firebase_credentials_json)
+except json.JSONDecodeError:
+    raise ValueError("GOOGLE_APPLICATION_CREDENTIALS is not a valid JSON string.")
 
-cred = credentials.Certificate(str(cred_path))
+# Step 3: Initialize the Firebase app from the dictionary
+cred = credentials.Certificate(cred_dict)
 initialize_app(cred)
 db = firestore.client()
 
-app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
